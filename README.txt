@@ -581,6 +581,9 @@ varnishlog and make sure the Vary header only looks like this:
 
 8. Changelog
 ============
+4.0.5.1
+- added option to enable caching of HTTPS requests (#34)
+
 4.0.5
 - fixed issue with caching of store switching requests
 
