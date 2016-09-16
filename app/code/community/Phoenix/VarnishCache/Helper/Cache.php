@@ -1,4 +1,5 @@
 <?php
+
 /**
  * PageCache powered by Varnish
  *
@@ -20,12 +21,13 @@
 
 class Phoenix_VarnishCache_Helper_Cache extends Mage_Core_Helper_Abstract
 {
-    const XML_PATH_VARNISH_CACHE_DISABLE_CACHING      = 'varnishcache/general/disable_caching';
-    const XML_PATH_VARNISH_CACHE_DISABLE_CACHING_VARS = 'varnishcache/general/disable_caching_vars';
-    const XML_PATH_VARNISH_CACHE_DISABLE_ROUTES       = 'varnishcache/general/disable_routes';
-    const XML_PATH_VARNISH_CACHE_TTL                  = 'varnishcache/general/ttl';
-    const XML_PATH_VARNISH_CACHE_ROUTES_TTL           = 'varnishcache/general/routes_ttl';
-    const XML_PATH_VARNISH_CACHE_ENABLE_CACHING_HTTPS = 'varnishcache/general/enable_caching_https';
+    const XML_PATH_VARNISH_CACHE_DISABLE_CACHING              = 'varnishcache/general/disable_caching';
+    const XML_PATH_VARNISH_CACHE_DISABLE_CACHING_VARS         = 'varnishcache/general/disable_caching_vars';
+    const XML_PATH_VARNISH_CACHE_DISABLE_ROUTES               = 'varnishcache/general/disable_routes';
+    const XML_PATH_VARNISH_CACHE_TTL                          = 'varnishcache/general/ttl';
+    const XML_PATH_VARNISH_CACHE_ROUTES_TTL                   = 'varnishcache/general/routes_ttl';
+    const XML_PATH_VARNISH_CACHE_ENABLE_CACHING_SECURE        = 'varnishcache/general/enable_caching_secure';
+    const XML_PATH_VARNISH_CACHE_ENABLE_CACHING_SECURE_ROUTES = 'varnishcache/general/enable_caching_secure_routes';
 
     const REGISTRY_VAR_VARNISH_CACHE_CONTROL_HEADERS_SET_FLAG = '_varnish_cache_control_headers_set_flag';
 
@@ -87,15 +89,34 @@ class Phoenix_VarnishCache_Helper_Cache extends Mage_Core_Helper_Abstract
             $this->setDebugHeader();
         }
 
-        // disable caching of secure pages
-        if (
-            Mage::app()->getStore()->isCurrentlySecure() &&
-            !Mage::getStoreConfigFlag(self::XML_PATH_VARNISH_CACHE_ENABLE_CACHING_HTTPS)
-        ) {
-            return $this->setNoCacheHeader();
-        }
-
         $request = Mage::app()->getRequest();
+
+        // build full cation name
+        $fullActionName = $request->getRequestedRouteName() . '_' .
+            $request->getRequestedControllerName() . '_' .
+            $request->getRequestedActionName();
+
+
+        if (Mage::app()->getStore()->isCurrentlySecure()) {
+            // check if secure route/action is allowed to be cached
+            $cacheable = false;
+            if (Mage::getStoreConfigFlag(self::XML_PATH_VARNISH_CACHE_ENABLE_CACHING_SECURE)) {
+                $enableSecureRoutes = explode("\n", trim(Mage::getStoreConfig(self::XML_PATH_VARNISH_CACHE_ENABLE_CACHING_SECURE_ROUTES)));
+                foreach ($enableSecureRoutes as $route) {
+                    $route = trim($route);
+                    // if route is found at first position we have a hit
+                    if (!empty($route) && strpos($fullActionName, $route) === 0) {
+                        $cacheable = true;
+                        break;
+                    }
+                }
+            }
+
+            // disable caching of secure pages
+            if (!$cacheable) {
+                return $this->setNoCacheHeader();
+            }
+        }
 
         // check for disable caching vars
         if ($disableCachingVars = trim(Mage::getStoreConfig(self::XML_PATH_VARNISH_CACHE_DISABLE_CACHING_VARS))) {
@@ -127,10 +148,6 @@ class Phoenix_VarnishCache_Helper_Cache extends Mage_Core_Helper_Abstract
          *
          * see: Mage_Core_Controller_Varien_Action::getFullActionName()
          */
-        $fullActionName = $request->getRequestedRouteName().'_'.
-            $request->getRequestedControllerName().'_'.
-            $request->getRequestedActionName();
-
         // check caching blacklist for request routes
         $disableRoutes = explode("\n", trim(Mage::getStoreConfig(self::XML_PATH_VARNISH_CACHE_DISABLE_ROUTES)));
         foreach ($disableRoutes as $route) {
