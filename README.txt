@@ -581,6 +581,9 @@ varnishlog and make sure the Vary header only looks like this:
 
 8. Changelog
 ============
+4.0.5.3
+- add X-Cache-Varnish header in example vcl file to avoid overriding by CDN cache headers
+
 4.0.5.2
 - implement whitelist of cachable secure route/actions
 

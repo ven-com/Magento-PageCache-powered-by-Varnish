@@ -187,9 +187,11 @@ sub vcl_deliver {
     if (resp.http.X-Cache-Debug) {
         if (obj.hits > 0) {
             set resp.http.X-Cache = "HIT";
+            set resp.http.X-Cache-Varnish = "HIT";
             set resp.http.X-Cache-Hits = obj.hits;
         } else {
            set resp.http.X-Cache = "MISS";
+           set resp.http.X-Cache-Varnish = "MISS";
         }
         set resp.http.X-Cache-Expires = resp.http.Expires;
     } else {
