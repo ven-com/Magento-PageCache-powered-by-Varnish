@@ -670,6 +670,9 @@ varnishlog and make sure the Vary header only looks like this:
 
 8. Changelog
 ============
+4.2.3.1
+- added option to enable caching of HTTPS requests (#34)
+
 4.2.3
 - added option to disable ESI over HTTPS (#16)
 
